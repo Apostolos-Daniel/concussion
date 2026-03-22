@@ -1,0 +1,140 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - claude/clearhead-pwa-app-ZQvTJ
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build
+        run: npm run build
+
+      - name: Add password gate to index.html
+        run: |
+          python3 - << 'PYEOF'
+          import re
+
+          with open('dist/index.html', 'r') as f:
+              html = f.read()
+
+          password_gate = '''  <style>
+              #pw-gate {
+                position: fixed; inset: 0; z-index: 99999;
+                display: flex; align-items: center; justify-content: center;
+                background: #0D5C63;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+              }
+              #pw-gate .box {
+                background: white; border-radius: 16px; padding: 40px 32px;
+                width: 100%; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                text-align: center;
+              }
+              #pw-gate h1 { margin: 0 0 6px; color: #0D5C63; font-size: 1.6rem; font-weight: 700; }
+              #pw-gate p { margin: 0 0 24px; color: #6b7280; font-size: 0.9rem; }
+              #pw-gate input {
+                width: 100%; padding: 12px 14px; border: 1.5px solid #d1d5db;
+                border-radius: 8px; font-size: 1rem; box-sizing: border-box;
+                outline: none; transition: border-color 0.2s;
+              }
+              #pw-gate input:focus { border-color: #0D5C63; }
+              #pw-gate input.error { border-color: #ef4444; animation: shake 0.3s; }
+              #pw-gate button {
+                margin-top: 12px; width: 100%; padding: 12px;
+                background: #0D5C63; color: white; border: none;
+                border-radius: 8px; font-size: 1rem; font-weight: 600;
+                cursor: pointer; transition: background 0.2s;
+              }
+              #pw-gate button:hover { background: #0a4a50; }
+              #pw-gate .err-msg { color: #ef4444; font-size: 0.85rem; margin-top: 8px; min-height: 20px; }
+              @keyframes shake {
+                0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}
+              }
+            </style>
+            <script>
+              (function() {
+                var CORRECT_HASH = -1919718354;
+                function hashPassword(pw) {
+                  var h = 0;
+                  for (var i = 0; i < pw.length; i++) {
+                    h = (Math.imul(31, h) + pw.charCodeAt(i)) | 0;
+                  }
+                  return h;
+                }
+                var KEY = 'ch_auth';
+                if (sessionStorage.getItem(KEY) === String(CORRECT_HASH)) return;
+                document.addEventListener('DOMContentLoaded', function() {
+                  var gate = document.createElement('div');
+                  gate.id = 'pw-gate';
+                  gate.innerHTML = '<div class="box"><h1>ClearHead</h1><p>Enter password to continue</p><input type="password" id="pw-input" placeholder="Password" autocomplete="current-password" /><button id="pw-btn">Enter</button><div class="err-msg" id="pw-err"></div></div>';
+                  document.body.appendChild(gate);
+                  var input = document.getElementById('pw-input');
+                  var btn = document.getElementById('pw-btn');
+                  var errMsg = document.getElementById('pw-err');
+                  function attempt() {
+                    var h = hashPassword(input.value);
+                    if (h === CORRECT_HASH) {
+                      sessionStorage.setItem(KEY, String(h));
+                      gate.remove();
+                    } else {
+                      errMsg.textContent = 'Incorrect password. Try again.';
+                      input.classList.add('error');
+                      input.value = '';
+                      setTimeout(function(){ input.classList.remove('error'); }, 400);
+                    }
+                  }
+                  btn.addEventListener('click', attempt);
+                  input.addEventListener('keydown', function(e){ if(e.key==='Enter') attempt(); });
+                  input.focus();
+                });
+              })();
+            </script>'''
+
+          html = html.replace('</head>', password_gate + '\n</head>')
+          with open('dist/index.html', 'w') as f:
+              f.write(html)
+          print("Password gate injected successfully")
+          PYEOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
