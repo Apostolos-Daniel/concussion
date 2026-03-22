@@ -120,6 +120,9 @@ jobs:
           print("Password gate injected successfully")
           PYEOF
 
+      - name: Copy index.html as 404.html for SPA routing
+        run: cp dist/index.html dist/404.html
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
