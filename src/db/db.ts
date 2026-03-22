@@ -1,5 +1,6 @@
-import Dexie, { Table } from 'dexie';
-import { Athlete, Assessment } from '../types';
+import Dexie from 'dexie';
+import type { Table } from 'dexie';
+import type { Athlete, Assessment } from '../types';
 
 export class ClearHeadDB extends Dexie {
   athletes!: Table<Athlete>;

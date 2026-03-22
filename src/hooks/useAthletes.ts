@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { Athlete } from '../types';
+import type { Athlete } from '../types';
 
 export function useAthletes() {
   return useLiveQuery(() => db.athletes.orderBy('name').toArray(), []);

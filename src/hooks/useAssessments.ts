@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-import { Assessment } from '../types';
+import type { Assessment } from '../types';
 
 export function useAssessments(athleteId?: string) {
   return useLiveQuery(
