@@ -58,10 +58,10 @@ export function AssessPage() {
   };
 
   const handleStart = async () => {
-    if (!selectedAthlete || !assessType || !completedBy.trim()) return;
+    if (!assessType || !completedBy.trim()) return;
     setCreating(true);
     const a = await createAssessment({
-      athleteId: selectedAthlete.id,
+      ...(selectedAthlete ? { athleteId: selectedAthlete.id } : {}),
       type: assessType,
       date: new Date().toISOString(),
       completedBy: completedBy.trim(),
@@ -143,21 +143,42 @@ export function AssessPage() {
                 </svg>
               </button>
             ))}
+            <div style={{ padding: '16px 16px 8px', borderTop: filteredAthletes.length > 0 ? '1px solid #E5E7EB' : 'none', marginTop: filteredAthletes.length > 0 ? 8 : 0 }}>
+              <button
+                onClick={() => { setSelectedAthlete(null); setStep('select-type'); }}
+                style={{ width: '100%', background: '#F9FAFB', border: '1.5px dashed #D1D5DB', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', minHeight: 52 }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontWeight: 600, fontSize: 15, color: '#374151' }}>Skip – no athlete profile</div>
+                  <div style={{ fontSize: 12, color: '#9CA3AF' }}>Profile must be linked before completing the assessment</div>
+                </div>
+              </button>
+            </div>
           </div>
         )}
 
         {/* Type selection */}
-        {step === 'select-type' && selectedAthlete && (
+        {step === 'select-type' && (
           <div style={{ padding: 20 }}>
-            <div style={{ background: '#F0FDFA', border: '1px solid #99F6E4', borderRadius: 10, padding: '12px 16px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#0D5C63', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 14 }}>
-                {getInitials(selectedAthlete.name)}
+            {selectedAthlete ? (
+              <div style={{ background: '#F0FDFA', border: '1px solid #99F6E4', borderRadius: 10, padding: '12px 16px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#0D5C63', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 14 }}>
+                  {getInitials(selectedAthlete.name)}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, color: '#0D5C63' }}>{selectedAthlete.name}</div>
+                  <div style={{ fontSize: 13, color: '#6B7280' }}>{selectedAthlete.sport}</div>
+                </div>
               </div>
-              <div>
-                <div style={{ fontWeight: 700, color: '#0D5C63' }}>{selectedAthlete.name}</div>
-                <div style={{ fontSize: 13, color: '#6B7280' }}>{selectedAthlete.sport}</div>
+            ) : (
+              <div style={{ background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: 10, padding: '12px 16px', marginBottom: 24 }}>
+                <div style={{ fontWeight: 600, color: '#92400E', fontSize: 14 }}>No athlete profile selected</div>
+                <div style={{ fontSize: 13, color: '#B45309' }}>You'll need to link a profile before completing the assessment.</div>
               </div>
-            </div>
+            )}
 
             <h3 style={{ margin: '0 0 16px', fontSize: 17, fontWeight: 700 }}>Select Assessment Type</h3>
 
@@ -231,11 +252,22 @@ export function AssessPage() {
         )}
 
         {/* Confirm */}
-        {step === 'confirm' && selectedAthlete && assessType && (
+        {step === 'confirm' && assessType && (
           <div style={{ padding: 20 }}>
+            {!selectedAthlete && (
+              <div style={{ background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: 10, padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <svg style={{ flexShrink: 0, marginTop: 2 }} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <div>
+                  <div style={{ fontWeight: 600, color: '#92400E', fontSize: 14 }}>No athlete profile selected</div>
+                  <div style={{ fontSize: 13, color: '#B45309' }}>You can start the assessment, but you must link an athlete profile before completing it.</div>
+                </div>
+              </div>
+            )}
             <div style={{ background: 'white', borderRadius: 12, padding: 16, marginBottom: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
               <h3 style={{ margin: '0 0 14px', fontSize: 16, fontWeight: 700 }}>Assessment Summary</h3>
-              <InfoRow label="Athlete" value={selectedAthlete.name} />
+              <InfoRow label="Athlete" value={selectedAthlete ? selectedAthlete.name : 'Not linked yet'} />
               <InfoRow label="Type" value={assessType === 'baseline' ? 'Baseline' : 'Post-Incident'} />
               <InfoRow label="Date" value={new Date().toLocaleDateString()} />
               {baselineId && <InfoRow label="Baseline" value="Selected" />}

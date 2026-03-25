@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useAssessment } from '../../hooks/useAssessments';
+import { useAssessment, updateAssessment } from '../../hooks/useAssessments';
+import { useAthletes } from '../../hooks/useAthletes';
 import type { Assessment, Athlete } from '../../types';
 
 interface Props {
@@ -20,6 +21,10 @@ export function Step11Decision({ assessment, onSave, onPrev, isBaseline, onCompl
   const [clearForReturn, setClearForReturn] = useState<boolean | null>(existing.clearForReturn ?? null);
   const [notes] = useState(existing.notes || '');
   const [completing, setCompleting] = useState(false);
+  const [linkingAthlete, setLinkingAthlete] = useState(false);
+  const [selectedAthleteId, setSelectedAthleteId] = useState('');
+  const athletes = useAthletes();
+  const hasAthleteProfile = !!assessment.athleteId;
 
   const baselineAssessment = useAssessment(assessment.baselineAssessmentId || '');
 
@@ -47,7 +52,15 @@ export function Step11Decision({ assessment, onSave, onPrev, isBaseline, onCompl
     return () => clearTimeout(timeout);
   }, [diagnosis, recommendations, followUp, clearForReturn, notes]); // eslint-disable-line
 
+  const handleLinkAthlete = async () => {
+    if (!selectedAthleteId) return;
+    setLinkingAthlete(true);
+    await updateAssessment(assessment.id, { athleteId: selectedAthleteId });
+    setLinkingAthlete(false);
+  };
+
   const handleComplete = async () => {
+    if (!hasAthleteProfile) return;
     setCompleting(true);
     await onSave('decision', { diagnosis, recommendations, followUp, clearForReturn, notes });
     onComplete();
@@ -223,18 +236,63 @@ export function Step11Decision({ assessment, onSave, onPrev, isBaseline, onCompl
         </div>
       </div>
 
+      {/* Athlete profile requirement */}
+      {!hasAthleteProfile && (
+        <div style={{ background: '#FFFBEB', border: '1.5px solid #FCD34D', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 12 }}>
+            <svg style={{ flexShrink: 0, marginTop: 2 }} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <div>
+              <div style={{ fontWeight: 700, color: '#92400E', fontSize: 15 }}>Athlete profile required</div>
+              <div style={{ fontSize: 13, color: '#B45309', marginTop: 2 }}>Link an athlete profile to complete this assessment.</div>
+            </div>
+          </div>
+          {athletes && athletes.length > 0 ? (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <select
+                value={selectedAthleteId}
+                onChange={e => setSelectedAthleteId(e.target.value)}
+                style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1.5px solid #D1D5DB', fontSize: 14, outline: 'none', background: 'white', color: '#111827' }}
+              >
+                <option value="">Select athlete...</option>
+                {athletes.map(a => (
+                  <option key={a.id} value={a.id}>{a.name} · {a.sport}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleLinkAthlete}
+                disabled={!selectedAthleteId || linkingAthlete}
+                style={{
+                  padding: '10px 16px', borderRadius: 8, border: 'none', background: '#D97706',
+                  color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                  opacity: !selectedAthleteId ? 0.5 : 1,
+                }}
+              >
+                {linkingAthlete ? 'Linking...' : 'Link'}
+              </button>
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: '#B45309' }}>
+              No athletes found. Go to the Athletes tab to create one first, then return to complete this assessment.
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Complete button */}
-      <div style={{ background: '#F0FDFA', border: '1px solid #99F6E4', borderRadius: 10, padding: 14, marginBottom: 16 }}>
-        <div style={{ fontSize: 14, color: '#0D5C63', marginBottom: 8 }}>
+      <div style={{ background: hasAthleteProfile ? '#F0FDFA' : '#F9FAFB', border: `1px solid ${hasAthleteProfile ? '#99F6E4' : '#E5E7EB'}`, borderRadius: 10, padding: 14, marginBottom: 16 }}>
+        <div style={{ fontSize: 14, color: hasAthleteProfile ? '#0D5C63' : '#9CA3AF', marginBottom: 8 }}>
           Once you complete the assessment, it will be saved and you can export a PDF report.
         </div>
         <button
           onClick={handleComplete}
-          disabled={completing}
+          disabled={completing || !hasAthleteProfile}
+          title={!hasAthleteProfile ? 'Link an athlete profile before completing' : undefined}
           style={{
-            width: '100%', background: '#0D5C63', color: 'white', border: 'none',
+            width: '100%', background: hasAthleteProfile ? '#0D5C63' : '#9CA3AF', color: 'white', border: 'none',
             borderRadius: 12, padding: '16px', fontWeight: 800, fontSize: 17,
-            cursor: 'pointer', minHeight: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            cursor: hasAthleteProfile ? 'pointer' : 'not-allowed', minHeight: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           }}
         >
           {completing ? 'Completing...' : '✓ Complete Assessment'}

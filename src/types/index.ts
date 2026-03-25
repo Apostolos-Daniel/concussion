@@ -10,7 +10,7 @@ export interface Athlete {
 
 export interface Assessment {
   id: string;
-  athleteId: string;
+  athleteId?: string;
   type: 'baseline' | 'post-incident';
   date: string;
   completedBy: string;
