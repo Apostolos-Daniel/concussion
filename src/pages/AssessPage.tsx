@@ -19,6 +19,7 @@ export function AssessPage() {
   const [assessType, setAssessType] = useState<'baseline' | 'post-incident' | null>(null);
   const [baselineId, setBaselineId] = useState<string | null>(null);
   const [completedBy, setCompletedBy] = useState('');
+  const [completedByRole, setCompletedByRole] = useState('');
   const [search, setSearch] = useState('');
   const [creating, setCreating] = useState(false);
 
@@ -58,13 +59,14 @@ export function AssessPage() {
   };
 
   const handleStart = async () => {
-    if (!assessType || !completedBy.trim()) return;
+    if (!assessType || !completedBy.trim() || !completedByRole) return;
     setCreating(true);
     const a = await createAssessment({
       ...(selectedAthlete ? { athleteId: selectedAthlete.id } : {}),
       type: assessType,
       date: new Date().toISOString(),
       completedBy: completedBy.trim(),
+      completedByRole,
       ...(baselineId ? { baselineAssessmentId: baselineId } : {}),
     });
     setCreating(false);
@@ -273,13 +275,13 @@ export function AssessPage() {
               {baselineId && <InfoRow label="Baseline" value="Selected" />}
             </div>
 
-            <div style={{ marginBottom: 20 }}>
+            <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', fontSize: 15, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
                 Completed By *
               </label>
               <input
                 type="text"
-                placeholder="Clinician / Trainer name"
+                placeholder="Practitioner name"
                 value={completedBy}
                 onChange={e => setCompletedBy(e.target.value)}
                 style={{
@@ -287,6 +289,35 @@ export function AssessPage() {
                   fontSize: 15, outline: 'none', minHeight: 48, boxSizing: 'border-box', color: '#111827',
                 }}
               />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: 15, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+                Designation / Role *
+              </label>
+              <select
+                value={completedByRole}
+                onChange={e => setCompletedByRole(e.target.value)}
+                style={{
+                  width: '100%', padding: '12px', borderRadius: 10, border: '1.5px solid #D1D5DB',
+                  fontSize: 15, outline: 'none', minHeight: 48, boxSizing: 'border-box',
+                  color: completedByRole ? '#111827' : '#9CA3AF', background: 'white', appearance: 'none',
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 12px center',
+                  paddingRight: 40,
+                }}
+              >
+                <option value="" disabled>Select role</option>
+                <option value="Doctor / Physician">Doctor / Physician</option>
+                <option value="Physiotherapist">Physiotherapist</option>
+                <option value="Athletic Therapist">Athletic Therapist</option>
+                <option value="Sports Trainer">Sports Trainer</option>
+                <option value="Nurse / Nurse Practitioner">Nurse / Nurse Practitioner</option>
+                <option value="Paramedic / EMT">Paramedic / EMT</option>
+                <option value="Coach">Coach</option>
+                <option value="Team Manager">Team Manager</option>
+              </select>
             </div>
 
             {assessType === 'post-incident' && (
@@ -300,12 +331,12 @@ export function AssessPage() {
 
             <button
               onClick={handleStart}
-              disabled={!completedBy.trim() || creating}
+              disabled={!completedBy.trim() || !completedByRole || creating}
               style={{
                 width: '100%', background: '#0D5C63', color: 'white', border: 'none',
                 borderRadius: 12, padding: '14px', fontWeight: 700, fontSize: 16,
                 cursor: 'pointer', minHeight: 52,
-                opacity: !completedBy.trim() ? 0.5 : 1,
+                opacity: !completedBy.trim() || !completedByRole ? 0.5 : 1,
               }}
             >
               {creating ? 'Starting...' : 'Begin Assessment'}

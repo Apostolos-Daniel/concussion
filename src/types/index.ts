@@ -14,6 +14,7 @@ export interface Assessment {
   type: 'baseline' | 'post-incident';
   date: string;
   completedBy: string;
+  completedByRole?: string;
   sections: Record<string, any>;
   status: 'in-progress' | 'complete';
   baselineAssessmentId?: string;
