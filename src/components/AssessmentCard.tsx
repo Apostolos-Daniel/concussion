@@ -14,7 +14,7 @@ function formatDate(dateStr: string) {
 
 export function AssessmentCard({ assessment, showAthlete = true }: AssessmentCardProps) {
   const navigate = useNavigate();
-  const athlete = useAthlete(assessment.athleteId);
+  const athlete = useAthlete(assessment.athleteId ?? '');
 
   const typeBadge = assessment.type === 'baseline'
     ? { label: 'Baseline', bg: '#DBEAFE', color: '#1D4ED8' }
