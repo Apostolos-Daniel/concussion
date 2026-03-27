@@ -6,6 +6,7 @@ import { AssessPage } from './pages/AssessPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { HistoryDetailPage } from './pages/HistoryDetailPage';
 import { AssessmentWizard } from './assessment/AssessmentWizard';
+import { AssessorsPage } from './pages/AssessorsPage';
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -56,6 +57,11 @@ function App() {
         } />
         <Route path="/history/:id" element={
           <AppLayout><HistoryDetailPage /></AppLayout>
+        } />
+
+        {/* Assessors */}
+        <Route path="/assessors" element={
+          <AppLayout><AssessorsPage /></AppLayout>
         } />
 
         {/* Fallback */}

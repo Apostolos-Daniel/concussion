@@ -1,3 +1,13 @@
+export interface Assessor {
+  id: string;
+  name: string;
+  role: string;
+  organization?: string;
+  email?: string;
+  phone?: string;
+  createdAt: string;
+}
+
 export interface Athlete {
   id: string;
   name: string;

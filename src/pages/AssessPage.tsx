@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAthletes } from '../hooks/useAthletes';
 import { useAssessments, createAssessment } from '../hooks/useAssessments';
-import type { Athlete } from '../types';
+import { useAssessors } from '../hooks/useAssessors';
+import type { Athlete, Assessor } from '../types';
 
 function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -14,6 +15,7 @@ export function AssessPage() {
   const preselectedAthleteId = searchParams.get('athleteId');
 
   const athletes = useAthletes();
+  const assessors = useAssessors();
   const [step, setStep] = useState<'select-athlete' | 'select-type' | 'select-baseline' | 'confirm'>('select-athlete');
   const [selectedAthlete, setSelectedAthlete] = useState<Athlete | null>(null);
   const [assessType, setAssessType] = useState<'baseline' | 'post-incident' | null>(null);
@@ -22,6 +24,8 @@ export function AssessPage() {
   const [completedByRole, setCompletedByRole] = useState('');
   const [search, setSearch] = useState('');
   const [creating, setCreating] = useState(false);
+  const [selectedAssessor, setSelectedAssessor] = useState<Assessor | null>(null);
+  const [showAssessorPicker, setShowAssessorPicker] = useState(false);
 
   const athleteAssessments = useAssessments(selectedAthlete?.id);
   const baselineAssessments = (athleteAssessments || []).filter(
@@ -80,6 +84,19 @@ export function AssessPage() {
       if (assessType === 'post-incident' && baselineAssessments.length > 0) setStep('select-baseline');
       else setStep('select-type');
     }
+  };
+
+  const handlePickAssessor = (a: Assessor) => {
+    setSelectedAssessor(a);
+    setCompletedBy(a.name);
+    setCompletedByRole(a.role);
+    setShowAssessorPicker(false);
+  };
+
+  const handleClearAssessor = () => {
+    setSelectedAssessor(null);
+    setCompletedBy('');
+    setCompletedByRole('');
   };
 
   return (
@@ -275,6 +292,43 @@ export function AssessPage() {
               {baselineId && <InfoRow label="Baseline" value="Selected" />}
             </div>
 
+            {/* Assessor profile picker */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 15, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+                Assessor
+              </label>
+              {selectedAssessor ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#F0FDFA', border: '1.5px solid #0D5C63', borderRadius: 10, padding: '10px 12px' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#0D5C63', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+                    {selectedAssessor.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 15, color: '#0D5C63' }}>{selectedAssessor.name}</div>
+                    <div style={{ fontSize: 12, color: '#6B7280' }}>{selectedAssessor.role}</div>
+                  </div>
+                  <button onClick={handleClearAssessor} style={{ background: 'none', border: 'none', color: '#6B7280', cursor: 'pointer', fontSize: 18, padding: 4, minHeight: 36, minWidth: 36 }}>✕</button>
+                </div>
+              ) : (assessors && assessors.length > 0) ? (
+                <button
+                  onClick={() => setShowAssessorPicker(true)}
+                  style={{ width: '100%', background: '#F9FAFB', border: '1.5px dashed #D1D5DB', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', minHeight: 52 }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 600, fontSize: 15, color: '#374151' }}>Select saved assessor</div>
+                    <div style={{ fontSize: 12, color: '#9CA3AF' }}>Or fill in manually below</div>
+                  </div>
+                </button>
+              ) : (
+                <div style={{ fontSize: 13, color: '#9CA3AF', padding: '4px 0' }}>
+                  No saved assessors. <span style={{ color: '#0D5C63', fontWeight: 600 }}>Add profiles in the Assessors tab.</span>
+                </div>
+              )}
+            </div>
+
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', fontSize: 15, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
                 Completed By *
@@ -283,7 +337,7 @@ export function AssessPage() {
                 type="text"
                 placeholder="Practitioner name"
                 value={completedBy}
-                onChange={e => setCompletedBy(e.target.value)}
+                onChange={e => { setCompletedBy(e.target.value); setSelectedAssessor(null); }}
                 style={{
                   width: '100%', padding: '12px', borderRadius: 10, border: '1.5px solid #D1D5DB',
                   fontSize: 15, outline: 'none', minHeight: 48, boxSizing: 'border-box', color: '#111827',
@@ -297,7 +351,7 @@ export function AssessPage() {
               </label>
               <select
                 value={completedByRole}
-                onChange={e => setCompletedByRole(e.target.value)}
+                onChange={e => { setCompletedByRole(e.target.value); setSelectedAssessor(null); }}
                 style={{
                   width: '100%', padding: '12px', borderRadius: 10, border: '1.5px solid #D1D5DB',
                   fontSize: 15, outline: 'none', minHeight: 48, boxSizing: 'border-box',
@@ -344,6 +398,36 @@ export function AssessPage() {
           </div>
         )}
       </div>
+
+      {/* Assessor picker modal */}
+      {showAssessorPicker && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }}>
+          <div style={{ background: 'white', borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '70vh', overflowY: 'auto', padding: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Select Assessor</h2>
+              <button onClick={() => setShowAssessorPicker(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#6B7280', minHeight: 44, minWidth: 44 }}>✕</button>
+            </div>
+            {(assessors || []).map(a => (
+              <button
+                key={a.id}
+                onClick={() => handlePickAssessor(a)}
+                style={{ width: '100%', background: 'white', border: 'none', borderBottom: '1px solid #F3F4F6', padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', minHeight: 64 }}
+              >
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#0D5C63', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
+                  {a.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+                </div>
+                <div style={{ flex: 1, textAlign: 'left' }}>
+                  <div style={{ fontWeight: 600, fontSize: 15, color: '#111827' }}>{a.name}</div>
+                  <div style={{ fontSize: 13, color: '#6B7280' }}>{a.role}{a.organization ? ` · ${a.organization}` : ''}</div>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
